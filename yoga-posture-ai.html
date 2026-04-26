@@ -1,0 +1,1712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Yoga AI —Real-Time Posture Recognition</title>
+<link rel="icon" type="image/png" href="./images/logo1.webp">
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --sage: #7a9e7e;
+    --sage-light: #a8c4ac;
+    --sage-dark: #4a6e4e;
+    --cream: #f5f0e8;
+    --warm-white: #faf8f4;
+    --charcoal: #2c2c2a;
+    --soft-black: #1a1a18;
+    --terracotta: #c4714a;
+    --gold: #c9a84c;
+    --mist: #e8ede9;
+    --text-muted: #6b6b68;
+    --card-border: rgba(122,158,126,0.2);
+    --shadow: 0 4px 24px rgba(44,44,42,0.08);
+    --shadow-lg: 0 8px 40px rgba(44,44,42,0.14);
+  }
+
+  html, body, #root {
+    height: 100%;
+    background: var(--warm-white);
+    color: var(--charcoal);
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  h1,h2,h3,h4 { font-family: 'Playfair Display', serif; }
+
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--mist); }
+  ::-webkit-scrollbar-thumb { background: var(--sage-light); border-radius: 3px; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 12px 24px; border-radius: 50px; border: none;
+    font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500;
+    cursor: pointer; transition: all 0.25s ease; text-decoration: none;
+  }
+  .btn-primary {
+    background: var(--sage-dark); color: white;
+  }
+  .btn-primary:hover { background: var(--sage); transform: translateY(-1px); box-shadow: var(--shadow); }
+  .btn-outline {
+    background: transparent; color: var(--sage-dark);
+    border: 1.5px solid var(--sage);
+  }
+  .btn-outline:hover { background: var(--mist); }
+  .btn-sm { padding: 8px 16px; font-size: 13px; }
+  .btn-danger { background: #c0392b; color: white; }
+  .btn-danger:hover { background: #a93226; }
+
+  .card {
+    background: white; border-radius: 16px;
+    border: 1px solid var(--card-border); box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+
+  .badge {
+    display: inline-block; padding: 4px 12px; border-radius: 50px;
+    font-size: 12px; font-weight: 500;
+  }
+  .badge-sage { background: var(--mist); color: var(--sage-dark); }
+  .badge-gold { background: #fdf3dc; color: #8a6820; }
+  .badge-terra { background: #fceae3; color: #a04d2e; }
+
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(250,248,244,0.92); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--card-border);
+    padding: 0 32px; height: 64px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .nav-logo {
+    font-family: 'Playfair Display', serif; font-size: 22px;
+    color: var(--soft-black); display: flex; align-items: center; gap: 10px;
+    cursor: pointer;
+  }
+  .nav-logo span { color: var(--sage-dark); }
+  .nav-links { display: flex; gap: 8px; align-items: center; }
+  .nav-link {
+    padding: 6px 16px; border-radius: 50px; font-size: 14px;
+    color: var(--text-muted); cursor: pointer; transition: all 0.2s;
+    background: none; border: none; font-family: 'DM Sans', sans-serif;
+  }
+  .nav-link:hover, .nav-link.active { color: var(--sage-dark); background: var(--mist); }
+
+  /* Progress bar */
+  .progress-bar {
+    height: 6px; background: var(--mist); border-radius: 3px; overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%; border-radius: 3px;
+    background: linear-gradient(90deg, var(--sage), var(--sage-dark));
+    transition: width 0.5s ease;
+  }
+
+  /* Animated ring */
+  @keyframes pulse-ring {
+    0% { transform: scale(1); opacity: 0.6; }
+    50% { transform: scale(1.05); opacity: 0.3; }
+    100% { transform: scale(1); opacity: 0.6; }
+  }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; } to { opacity: 1; }
+  }
+  .animate-up { animation: slideUp 0.4s ease forwards; }
+  .animate-in { animation: fadeIn 0.3s ease forwards; }
+
+  /* Score circle */
+  .score-circle {
+    position: relative; width: 120px; height: 120px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .score-circle svg { position: absolute; top: 0; left: 0; transform: rotate(-90deg); }
+  .score-number {
+    font-size: 32px; font-weight: 700; font-family: 'Playfair Display', serif;
+    color: var(--sage-dark); z-index: 1;
+  }
+
+  /* Feedback item */
+  .feedback-item {
+    display: flex; gap: 12px; align-items: flex-start;
+    padding: 12px 0; border-bottom: 1px solid var(--mist);
+  }
+  .feedback-item:last-child { border-bottom: none; }
+  .feedback-dot {
+    width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; flex-shrink: 0;
+  }
+
+  /* Webcam container */
+  .webcam-wrapper {
+    position: relative; width: 100%; aspect-ratio: 16/10;
+    background: #1a1a18; border-radius: 16px; overflow: hidden;
+  }
+  .webcam-wrapper video, .webcam-wrapper canvas {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    object-fit: cover;
+  }
+  .webcam-overlay-canvas { z-index: 2; pointer-events: none; }
+  .webcam-badge {
+    position: absolute; top: 12px; left: 12px; z-index: 3;
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(6px);
+    color: white; padding: 6px 12px; border-radius: 50px; font-size: 12px;
+  }
+  .live-dot { width: 7px; height: 7px; border-radius: 50%; background: #e74c3c; animation: pulse-ring 1.5s infinite; }
+
+  /* Timer badge */
+  .timer-badge {
+    position: absolute; top: 12px; right: 12px; z-index: 3;
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(6px);
+    color: white; padding: 6px 14px; border-radius: 50px;
+    font-size: 20px; font-family: 'Playfair Display', serif; font-weight: 700;
+  }
+
+  /* Asana card */
+  .asana-card {
+    cursor: pointer; transition: all 0.25s ease; border-radius: 16px;
+    overflow: hidden; border: 1px solid var(--card-border);
+    background: white;
+  }
+  .asana-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+  .asana-card-img {
+    width: 100%; aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+    font-size: 64px; background: linear-gradient(135deg, #f0f7f1, #e8ede9);
+    position: relative;
+    overflow: hidden;
+    border: 2px dashed var(--sage-light);
+  }
+  .asana-card-img img {
+    width: 100%; height: 100%; object-fit: cover;
+  }
+  .asana-card-img.placeholder {
+    font-size: 80px;
+  }
+  .asana-card-img::after {
+    content: attr(data-ref);
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    font-size: 28px;
+    opacity: 0.6;
+  }
+  .asana-card-body { padding: 12px 14px; }
+  .asana-card-name { font-size: 14px; font-weight: 500; color: var(--charcoal); margin-bottom: 2px; }
+  .asana-card-sanskrit { font-size: 12px; color: var(--text-muted); font-style: italic; }
+
+  /* Dashboard stats */
+  .stat-card {
+    background: white; border-radius: 14px; padding: 20px;
+    border: 1px solid var(--card-border); text-align: center;
+  }
+  .stat-number { font-size: 36px; font-family: 'Playfair Display', serif; color: var(--sage-dark); }
+  .stat-label { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+
+  /* Chart bar */
+  .chart-bar {
+    display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1;
+  }
+  .chart-bar-fill {
+    width: 100%; background: var(--sage-light); border-radius: 4px 4px 0 0;
+    transition: height 0.5s ease; min-height: 4px;
+  }
+  .chart-bar-label { font-size: 11px; color: var(--text-muted); }
+
+  /* Tabs */
+  .tab-bar { display: flex; gap: 4px; background: var(--mist); padding: 4px; border-radius: 10px; }
+  .tab-btn {
+    flex: 1; padding: 8px; border: none; background: none;
+    border-radius: 7px; font-family: 'DM Sans', sans-serif; font-size: 13px;
+    cursor: pointer; color: var(--text-muted); transition: all 0.2s;
+  }
+  .tab-btn.active { background: white; color: var(--sage-dark); font-weight: 500; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+
+  /* Correction severity */
+  .sev-good { color: #27ae60; }
+  .sev-warn { color: #e67e22; }
+  .sev-bad { color: #e74c3c; }
+
+  /* Skeleton joints drawing */
+  canvas { display: block; }
+
+  /* Page transitions */
+  .page { animation: slideUp 0.3s ease; }
+
+  /* Reference pose */
+  .ref-pose { font-size: 80px; line-height: 1; }
+
+  /* Streak calendar */
+  .streak-day {
+    width: 28px; height: 28px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center; font-size: 11px;
+  }
+  .streak-active { background: var(--sage); color: white; }
+  .streak-inactive { background: var(--mist); color: var(--text-muted); }
+  .streak-today { border: 2px solid var(--sage-dark); }
+
+  /* Difficulty pill colors */
+  .diff-beginner { background: #eaf3de; color: #3b6d11; }
+  .diff-intermediate { background: #fdf3dc; color: #8a6820; }
+  .diff-advanced { background: #fceae3; color: #a04d2e; }
+
+  /* Muscle tags */
+  .muscle-tag { background: var(--mist); color: var(--sage-dark); padding: 4px 10px; border-radius: 20px; font-size: 12px; }
+
+  /* Settings toggle */
+  .toggle-switch {
+    width: 44px; height: 24px; border-radius: 12px; background: var(--mist);
+    position: relative; cursor: pointer; transition: background 0.2s;
+  }
+  .toggle-switch.on { background: var(--sage); }
+  .toggle-knob {
+    width: 18px; height: 18px; border-radius: 50%; background: white;
+    position: absolute; top: 3px; left: 3px; transition: left 0.2s;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  }
+  .toggle-switch.on .toggle-knob { left: 23px; }
+
+  /* Footer */
+  footer {
+    text-align: center; padding: 40px 20px; color: var(--text-muted);
+    font-size: 13px; border-top: 1px solid var(--mist); margin-top: 40px;
+  }
+
+  @media (max-width: 768px) {
+    nav { padding: 0 16px; }
+    .nav-links { display: none; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+// ─────────────────────────────────────────────
+// DATA
+// ─────────────────────────────────────────────
+const ASANAS = [
+  { id: 'mountain', name: 'Mountain Pose', sanskrit: 'Tadasana', image: './images/tadasana.webp', difficulty: 'beginner', duration: 60,
+    benefits: ['Improves posture','Strengthens thighs','Increases body awareness','Calms the mind'],
+    muscles: ['Quadriceps','Abdomen','Glutes','Back extensors'],
+    mistakes: ['Letting arches collapse','Hyperextending knees','Tensing shoulders'],
+    tips: 'Spread your toes wide. Engage your thighs without locking the knees.',
+    category: 'standing', desc: 'Foundation of all standing poses. Builds awareness.',
+    keyAngles: { leftKnee: 175, rightKnee: 175, leftHip: 175, rightHip: 175, leftShoulder: 10, rightShoulder: 10 },
+    referenceImage: './images/tadasana.webp'
+  },
+  { id: 'warrior1', name: 'Warrior I', sanskrit: 'Virabhadrasana I', image: './images/warrior-1.webp', difficulty: 'intermediate', duration: 45,
+    benefits: ['Strengthens legs','Opens hips','Builds focus','Stretches chest'],
+    muscles: ['Hip flexors','Glutes','Quadriceps','Shoulders'],
+    mistakes: ['Front knee caving in','Back foot not grounded','Hips not squared forward'],
+    tips: 'Keep your front knee directly over your ankle. Square your hips toward the front.',
+    category: 'standing', desc: 'Powerful lunge that builds strength and focus.',
+    keyAngles: { leftKnee: 90, rightKnee: 170, leftHip: 100, rightHip: 160, leftShoulder: 160, rightShoulder: 160 },
+    referenceImage: './images/warrior-1.webp'
+  },
+  { id: 'warrior2', name: 'Warrior II', sanskrit: 'Virabhadrasana II', image: './images/warrior-2.webp', difficulty: 'intermediate', duration: 45,
+    benefits: ['Strengthens arms and legs','Opens groin','Improves stamina','Relieves backaches'],
+    muscles: ['Inner thighs','Quadriceps','Deltoids','Core'],
+    mistakes: ['Front knee collapsing inward','Leaning torso forward','Dropping arms below shoulder level'],
+    tips: 'Sink deep into the front leg. Reach out through both arms as if pulling apart.',
+    category: 'standing', desc: 'Wide-legged warrior that develops stamina and strength.',
+    keyAngles: { leftKnee: 90, rightKnee: 170, leftShoulder: 90, rightShoulder: 90, leftHip: 90 },
+    referenceImage: './images/warrior-2.webp'
+  },
+  { id: 'tree', name: 'Tree Pose', sanskrit: 'Vrksasana', image: './images/vrksasana.webp', difficulty: 'beginner', duration: 60,
+    benefits: ['Improves balance','Strengthens ankles','Opens inner thigh','Enhances concentration'],
+    muscles: ['Calves','Ankles','Inner thighs','Core'],
+    mistakes: ['Placing foot on the knee joint','Tilting the pelvis','Not using a focal point'],
+    tips: 'Fix your gaze on a still point in front of you (drishti) to maintain balance.',
+    category: 'balance', desc: 'Classic balance pose that cultivates steadiness.',
+    keyAngles: { leftKnee: 175, rightKnee: 60, leftHip: 175, rightHip: 60 },
+    referenceImage: './images/vrksasana.webp'
+  },
+  { id: 'downdog', name: 'Downward Dog', sanskrit: 'Adho Mukha Svanasana', image: './images/Adho Mukha Svanasana2.webp', difficulty: 'beginner', duration: 60,
+    benefits: ['Stretches hamstrings','Strengthens arms','Calms the nervous system','Energizes the body'],
+    muscles: ['Hamstrings','Calves','Shoulders','Upper back'],
+    mistakes: ['Rounding the back','Bending the elbows','Lifting heels too high'],
+    tips: 'Press through all ten fingers. Let the head hang freely between the arms.',
+    category: 'inversion', desc: 'Full-body stretch that is both energizing and calming.',
+    keyAngles: { leftKnee: 170, rightKnee: 170, leftHip: 60, rightHip: 60, leftShoulder: 170, rightShoulder: 170 },
+    referenceImage: './images/Adho Mukha Svanasana2.webp'
+  },
+  { id: 'cobra', name: 'Cobra Pose', sanskrit: 'Bhujangasana', image: './images/Bhujangasana1.webp', difficulty: 'beginner', duration: 30,
+    benefits: ['Strengthens spine','Opens chest','Stimulates abdominal organs','Relieves stress'],
+    muscles: ['Erector spinae','Gluteus maximus','Triceps','Chest'],
+    mistakes: ['Scrunching shoulders to ears','Bending elbows too much','Overextending the neck'],
+    tips: 'Keep your elbows slightly bent and close to your sides. Lift from the chest, not the hands.',
+    category: 'backbend', desc: 'Gentle backbend that opens the heart and strengthens the spine.',
+    keyAngles: { leftShoulder: 45, rightShoulder: 45, leftElbow: 150, rightElbow: 150 },
+    referenceImage: './images/Bhujangasana1.webp'
+  },
+  { id: 'child', name: "Child's Pose", sanskrit: 'Balasana', image: './images/Balasana.webp', difficulty: 'beginner', duration: 90,
+    benefits: ['Releases tension in back','Calms the mind','Stretches hips','Relieves fatigue'],
+    muscles: ['Hips','Thighs','Ankles','Lower back'],
+    mistakes: ['Hips not reaching heels','Arms not fully extended','Head not resting'],
+    tips: 'Breathe deeply into your lower back. Allow gravity to gently release any tension.',
+    category: 'restorative', desc: 'Restorative pose for rest and introspection.',
+    keyAngles: { leftKnee: 40, rightKnee: 40, leftHip: 40, rightHip: 40 },
+    referenceImage: './images/Balasana.webp'
+  },
+  { id: 'triangle', name: 'Triangle Pose', sanskrit: 'Trikonasana', image: './images/Trikonasana.webp', difficulty: 'intermediate', duration: 45,
+    benefits: ['Stretches hips and groin','Strengthens legs','Opens chest','Relieves stress'],
+    muscles: ['Hamstrings','Inner thighs','Chest','Spine'],
+    mistakes: ['Collapsing chest toward floor','Bending the front knee','Forcing arm to floor'],
+    tips: 'Use a block if needed. Keep both sides of the waist long.',
+    category: 'standing', desc: 'Expansive side-stretch that develops strength and flexibility.',
+    keyAngles: { leftKnee: 175, rightKnee: 175, leftHip: 90, leftShoulder: 90 },
+    referenceImage: './images/Trikonasana.webp'
+  },
+  { id: 'plank', name: 'Plank Pose', sanskrit: 'Phalakasana', image: './images/Phalakasana2.webp', difficulty: 'intermediate', duration: 30,
+    benefits: ['Builds core strength','Tones arms','Strengthens wrists','Improves posture'],
+    muscles: ['Core','Shoulders','Triceps','Glutes'],
+    mistakes: ['Hips too high or low','Head dropping','Not engaging core'],
+    tips: 'Draw your navel to your spine. Keep your body in one straight line from head to heels.',
+    category: 'core', desc: 'Fundamental strength pose for core stability.',
+    keyAngles: { leftKnee: 175, rightKnee: 175, leftShoulder: 90, rightShoulder: 90 },
+    referenceImage: './images/Phalakasana2.webp'
+  },
+  { id: 'bridge', name: 'Bridge Pose', sanskrit: 'Setu Bandha Sarvangasana', image: './images/Setu Bandha Sarvangasana1.webp', difficulty: 'beginner', duration: 45,
+    benefits: ['Stretches chest and spine','Reduces anxiety','Relieves back pain','Strengthens legs'],
+    muscles: ['Glutes','Hamstrings','Lower back','Chest'],
+    mistakes: ['Feet too far from hips','Knees splaying out','Chin not tucked'],
+    tips: 'Press firmly through your feet. Clasp your hands under your body for added chest opening.',
+    category: 'backbend', desc: 'Gentle backbend that opens the chest and relieves stress.',
+    keyAngles: { leftKnee: 90, rightKnee: 90, leftHip: 135, rightHip: 135 },
+    referenceImage: './images/Setu Bandha Sarvangasana1.webp'
+  },
+  { id: 'chair', name: 'Chair Pose', sanskrit: 'Utkatasana', image: './images/Utkatasana.webp', difficulty: 'intermediate', duration: 30,
+    benefits: ['Tones thighs','Strengthens ankles','Stimulates heart','Reduces flat feet'],
+    muscles: ['Quadriceps','Glutes','Calves','Lower back'],
+    mistakes: ['Knees going past toes','Rounding the back','Arms not parallel'],
+    tips: 'Sit back as if into a real chair. Keep your chest lifted.',
+    category: 'standing', desc: 'Powerful squat-like pose that builds lower body strength.',
+    keyAngles: { leftKnee: 90, rightKnee: 90, leftHip: 90, rightHip: 90, leftShoulder: 150 },
+    referenceImage: './images/Utkatasana.webp'
+  },
+  { id: 'pigeon', name: 'Pigeon Pose', sanskrit: 'Eka Pada Rajakapotasana', image: './images/Eka Pada Rajakapotasana2.webp', difficulty: 'advanced', duration: 60,
+    benefits: ['Deep hip opener','Releases piriformis','Stretches hip flexors','Emotional release'],
+    muscles: ['Hip flexors','Piriformis','Glutes','Groin'],
+    mistakes: ['Forcing the hip down','Foot too close to body','Not squaring hips'],
+    tips: 'Place a blanket under the hip of the bent leg for support. Breathe deeply.',
+    category: 'hip', desc: 'Deep hip opener that releases stored tension.',
+    keyAngles: { leftKnee: 45, rightKnee: 170, leftHip: 45 },
+    referenceImage: './images/Eka Pada Rajakapotasana2.webp'
+  },
+  { id: 'seated-forward', name: 'Seated Forward Bend', sanskrit: 'Paschimottanasana', image: './images/Paschimottanasana2.webp', difficulty: 'beginner', duration: 60,
+    benefits: ['Stretches hamstrings','Calms the mind','Relieves anxiety','Improves digestion'],
+    muscles: ['Hamstrings','Calves','Lower back','Spine'],
+    mistakes: ['Rounding the back excessively','Pulling on feet','Bending knees'],
+    tips: 'Hinge at the hips, not the waist. Use a strap if needed. Focus on length, not depth.',
+    category: 'seated', desc: 'Calming forward fold that stretches the entire back body.',
+    keyAngles: { leftKnee: 175, rightKnee: 175, leftHip: 60, rightHip: 60 },
+    referenceImage: './images/Paschimottanasana2.webp'
+  },
+  { id: 'lotus', name: 'Lotus Pose', sanskrit: 'Padmasana', image: './images/Padmasana.webp', difficulty: 'advanced', duration: 120,
+    benefits: ['Opens hips','Calms the mind','Improves posture','Stimulates pelvis and spine'],
+    muscles: ['Hip rotators','Inner thighs','Ankles','Knees'],
+    mistakes: ['Forcing the position','Not warming up hips first','Rounding the spine'],
+    tips: 'Only practice full lotus after thorough hip opening. Half lotus is a great alternative.',
+    category: 'seated', desc: 'Classic meditation seat that opens the hips deeply.',
+    keyAngles: { leftKnee: 45, rightKnee: 45, leftHip: 60, rightHip: 60 },
+    referenceImage: './images/Padmasana.webp'
+  },
+  { id: 'warrior3', name: 'Warrior III', sanskrit: 'Virabhadrasana III', image: './images/Virabhadrasana III2.webp', difficulty: 'advanced', duration: 30,
+    benefits: ['Improves balance','Strengthens ankles','Tones core','Improves posture'],
+    muscles: ['Hamstrings','Core','Glutes','Shoulders'],
+    mistakes: ['Hip rotating open','Arms not extending forward','Standing knee bending'],
+    tips: 'Engage your core and flex the lifted foot. Keep both hips level.',
+    category: 'balance', desc: 'Advanced balance pose shaped like the letter T.',
+    keyAngles: { leftKnee: 175, leftHip: 90, leftShoulder: 170 },
+    referenceImage: './images/Virabhadrasana III2.webp'
+  },
+  { id: 'camel', name: 'Camel Pose', sanskrit: 'Ustrasana', image: './images/Ustrasana.webp', difficulty: 'intermediate', duration: 30,
+    benefits: ['Opens chest','Stretches abdomen','Improves posture','Boosts energy'],
+    muscles: ['Hip flexors','Core','Chest','Shoulders'],
+    mistakes: ['Compressing the lower back','Throwing head back','Hips not over knees'],
+    tips: 'Tuck toes under for an easier option. Keep hips stacked over knees.',
+    category: 'backbend', desc: 'Heart-opening backbend that stretches the entire front body.',
+    keyAngles: { leftKnee: 90, rightKnee: 90, leftShoulder: 30, rightShoulder: 30 },
+    referenceImage: './images/Ustrasana.webp'
+  },
+  { id: 'trivikrama', name: 'Trivikrasana', sanskrit: 'Trivikrasana', image: './images/Trivikrasana1.webp', difficulty: 'advanced', duration: 45,
+    benefits: ['Strengthens legs','Improves balance','Stretches hamstrings','Builds focus'],
+    muscles: ['Hamstrings','Glutes','Quadriceps','Core','Spine'],
+    mistakes: ['Bending standing knee','Hip dropping','Back rounding','Not extending lifted leg fully'],
+    tips: 'Engage your core and extend the lifted leg fully. Keep hips square. Use a wall for balance if needed.',
+    category: 'balance', desc: 'Three-limbed pose that combines balance and deep flexibility.',
+    keyAngles: { leftKnee: 175, leftHip: 120, leftShoulder: 170, rightKnee: 175, rightHip: 85 },
+    referenceImage: './images/Trivikrasana1.webp'
+  },
+  { id: 'nataraj', name: 'Dancer Pose', sanskrit: 'Natarajasana', image: './images/Natarajasana.jpg', difficulty: 'advanced', duration: 40,
+    benefits: ['Improves balance','Stretches hip flexors','Opens chest','Strengthens standing leg'],
+    muscles: ['Quadriceps','Hip flexors','Chest','Shoulders','Core'],
+    mistakes: ['Knee splaying outward','Leaning too far forward','Not opening chest','Standing knee bending'],
+    tips: 'Press the standing foot firmly. Keep hips level. Open your chest to the side.',
+    category: 'balance', desc: 'Graceful balance pose that resembles a dancer in motion.',
+    keyAngles: { leftKnee: 175, leftHip: 85, leftShoulder: 50, rightKnee: 120, rightHip: 90 },
+    referenceImage: './images/Natarajasana.jpg'
+  },
+  { id: 'crow', name: 'Crow Pose', sanskrit: 'Bakasana', image: './images/Bakasana.webp', difficulty: 'advanced', duration: 30,
+    benefits: ['Builds arm strength','Improves wrist stability','Enhances focus','Strengthens core'],
+    muscles: ['Arms','Wrists','Shoulders','Core'],
+    mistakes: ['Looking down','Elbows too wide','Not engaging core','Fear of falling'],
+    tips: 'Look slightly forward, not down. Engage your core strongly. Start with hands near body.',
+    category: 'core', desc: 'Arm balance that requires strength, focus, and body awareness.',
+    keyAngles: { leftKnee: 60, rightKnee: 60, leftElbow: 120, rightElbow: 120, leftShoulder: 80 },
+    referenceImage: './images/Bakasana.webp'
+  },
+  { id: 'shoulder-stand', name: 'Shoulder Stand', sanskrit: 'Sarvangasana', image: './images/Sarvangasana.webp', difficulty: 'advanced', duration: 60,
+    benefits: ['Calms nervous system','Improves circulation','Strengthens shoulders','Therapeutic for many conditions'],
+    muscles: ['Shoulders','Upper back','Neck','Core'],
+    mistakes: ['Turning head','Elbows too wide','Not supporting properly','Staying too long if new'],
+    tips: 'Support your back with hands. Keep elbows shoulder-width apart. Gaze straight up.',
+    category: 'inversion', desc: 'Powerful inversion that reverses gravity and calms the mind.',
+    keyAngles: { leftShoulder: 170, rightShoulder: 170, leftKnee: 175, rightKnee: 175 },
+    referenceImage: './images/Sarvangasana.webp'
+  },
+  { id: 'headstand', name: 'Headstand', sanskrit: 'Sirsasana', image: './images/Sirsasana.webp', difficulty: 'advanced', duration: 30,
+    benefits: ['Improves circulation','Relieves stress','Strengthens upper body','Builds confidence'],
+    muscles: ['Shoulders','Upper back','Arms','Core','Neck'],
+    mistakes: ['All weight on head','Elbows too wide','Not engaging legs','Kicking up carelessly'],
+    tips: 'Most weight should be on forearms, not head. Engage your core. Practice near a wall.',
+    category: 'inversion', desc: 'Advanced inversion that requires strength and practice.',
+    keyAngles: { leftShoulder: 90, rightShoulder: 90, leftKnee: 175, rightKnee: 175 },
+    referenceImage: './images/Sirsasana.webp'
+  },
+  { id: 'wheel', name: 'Wheel Pose', sanskrit: 'Urdhva Mukha Svanasana', image: './images/Urdhva Mukha Svanasana.webp', difficulty: 'intermediate', duration: 30,
+    benefits: ['Strengthens back','Opens chest','Improves flexibility','Energizes body'],
+    muscles: ['Back extensors','Glutes','Hamstrings','Chest','Shoulders'],
+    mistakes: ['Hands too close to feet','Feet too wide','Hyperextending neck','Collapsing chest'],
+    tips: 'Keep feet hip-width apart. Press firmly through hands. Keep neck neutral.',
+    category: 'backbend', desc: 'Deep backbend that opens the entire front body.',
+    keyAngles: { leftKnee: 170, rightKnee: 170, leftShoulder: 40, rightShoulder: 40, leftHip: 135 },
+    referenceImage: './images/Urdhva Mukha Svanasana.webp'
+  },
+  { id: 'warrior-c', name: 'Warrior C', sanskrit: 'Bhairavasana', image: './images/Bhairavasana.webp', difficulty: 'advanced', duration: 45,
+    benefits: ['Stretches inner thighs','Strengthens legs','Improves balance','Opens hips'],
+    muscles: ['Inner thighs','Hip flexors','Glutes','Hamstrings'],
+    mistakes: ['Front knee caving in','Leaning torso too far','Back heel lifting','Uneven weight distribution'],
+    tips: 'Keep front knee tracking over ankle. Square hips. Press back heel down.',
+    category: 'standing', desc: 'Deep lunge variation with a twist that challenges the entire body.',
+    keyAngles: { leftKnee: 90, rightKnee: 175, leftHip: 80, rightHip: 160 },
+    referenceImage: './images/Bhairavasana.webp'
+  },
+  { id: 'boat', name: 'Boat Pose', sanskrit: 'Navasana', image: './images/Navasana.webp', difficulty: 'intermediate', duration: 30,
+    benefits: ['Strengthens core','Builds hip flexor strength','Improves digestion','Increases stamina'],
+    muscles: ['Abdomen','Hip flexors','Quadriceps','Back'],
+    mistakes: ['Rounding spine','Chest collapsing','Legs dropped','Feet too close to body'],
+    tips: 'Keep chest lifted. Engage core strongly. Lean slightly back to create challenge.',
+    category: 'core', desc: 'Core strengthening pose shaped like a boat.',
+    keyAngles: { leftKnee: 90, rightKnee: 90, leftHip: 60, rightHip: 60, leftShoulder: 160 },
+    referenceImage: './images/Navasana.webp'
+  },
+  { id: 'scorpion', name: 'Scorpion Pose', sanskrit: 'Vrschikasana', image: './images/Vrschikasana.webp', difficulty: 'advanced', duration: 30,
+    benefits: ['Increases flexibility','Strengthens arms and shoulders','Improves focus','Boosts energy'],
+    muscles: ['Shoulders','Back','Chest','Hip flexors','Core'],
+    mistakes: ['Not engaging shoulders enough','Feet too far apart','Dropping hips','Tensing neck'],
+    tips: 'Engage shoulders and core strongly. Keep hips high. This is a challenging inversion.',
+    category: 'inversion', desc: 'Advanced arm balance that resembles a scorpion shape.',
+    keyAngles: { leftShoulder: 80, rightShoulder: 80, leftKnee: 120, rightKnee: 120 },
+    referenceImage: './images/Vrschikasana.webp'
+  },
+];
+
+const SESSIONS = [
+  { id: 'morning', name: 'Morning Energizer', duration: '20 min', poses: ['mountain','warrior1','warrior2','triangle','downdog'], emoji: '🌅', desc: 'Wake up your body with this invigorating morning flow.' },
+  { id: 'stress', name: 'Stress Relief', duration: '15 min', poses: ['child','seated-forward','bridge','cobra','lotus'], emoji: '🌿', desc: 'Melt away tension with restorative poses and deep breathing.' },
+  { id: 'strength', name: 'Strength Builder', duration: '25 min', poses: ['plank','chair','warrior1','warrior2','warrior3'], emoji: '💎', desc: 'Build functional strength with powerful standing poses.' },
+  { id: 'flexibility', name: 'Deep Flexibility', duration: '30 min', poses: ['downdog','pigeon','seated-forward','triangle','camel'], emoji: '🌊', desc: 'Open tight areas and improve your overall flexibility.' },
+];
+
+// ─────────────────────────────────────────────
+// POSE DETECTION ENGINE (MediaPipe simulation + real angle computation)
+// ─────────────────────────────────────────────
+
+// Compute angle at joint B formed by A-B-C with improved accuracy
+function computeAngle(A, B, C) {
+  if (!A || !B || !C) return null;
+  // Check for valid visibility (confidence)
+  if ((A.visibility || 0) < 0.3 || (B.visibility || 0) < 0.3 || (C.visibility || 0) < 0.3) return null;
+  
+  // Calculate vectors
+  const BA = { x: A.x - B.x, y: A.y - B.y };
+  const BC = { x: C.x - B.x, y: C.y - B.y };
+  
+  // Calculate magnitudes
+  const magBA = Math.sqrt(BA.x * BA.x + BA.y * BA.y);
+  const magBC = Math.sqrt(BC.x * BC.x + BC.y * BC.y);
+  
+  if (magBA < 0.001 || magBC < 0.001) return null; // Avoid division by zero
+  
+  // Calculate dot product and angle
+  const dotProduct = BA.x * BC.x + BA.y * BC.y;
+  const cosAngle = dotProduct / (magBA * magBC);
+  // Clamp to [-1, 1] to avoid NaN from acos
+  const clampedCos = Math.max(-1, Math.min(1, cosAngle));
+  let angle = Math.acos(clampedCos) * 180 / Math.PI;
+  
+  return Math.round(angle);
+}
+
+function analyzeAngles(landmarks, targetAsana) {
+  if (!landmarks || landmarks.length < 33) return null;
+  const lm = landmarks;
+  // MediaPipe landmark indices
+  const pts = {
+    leftShoulder: lm[11], rightShoulder: lm[12],
+    leftElbow: lm[13], rightElbow: lm[14],
+    leftWrist: lm[15], rightWrist: lm[16],
+    leftHip: lm[23], rightHip: lm[24],
+    leftKnee: lm[25], rightKnee: lm[26],
+    leftAnkle: lm[27], rightAnkle: lm[28],
+  };
+
+  const angles = {
+    leftKnee: computeAngle(pts.leftHip, pts.leftKnee, pts.leftAnkle),
+    rightKnee: computeAngle(pts.rightHip, pts.rightKnee, pts.rightAnkle),
+    leftHip: computeAngle(pts.leftShoulder, pts.leftHip, pts.leftKnee),
+    rightHip: computeAngle(pts.rightShoulder, pts.rightHip, pts.rightKnee),
+    leftShoulder: computeAngle(pts.leftElbow, pts.leftShoulder, pts.leftHip),
+    rightShoulder: computeAngle(pts.rightElbow, pts.rightShoulder, pts.rightHip),
+    leftElbow: computeAngle(pts.leftShoulder, pts.leftElbow, pts.leftWrist),
+    rightElbow: computeAngle(pts.rightShoulder, pts.rightElbow, pts.rightWrist),
+  };
+
+  const target = targetAsana.keyAngles;
+  const corrections = [];
+  let totalScore = 0;
+  let scoreCount = 0;
+
+  const jointNames = {
+    leftKnee: 'Left Knee', rightKnee: 'Right Knee',
+    leftHip: 'Left Hip', rightHip: 'Right Hip',
+    leftShoulder: 'Left Shoulder', rightShoulder: 'Right Shoulder',
+    leftElbow: 'Left Elbow', rightElbow: 'Right Elbow',
+  };
+
+  const bodyParts = { arms: [], legs: [], posture: [] };
+
+  Object.entries(target).forEach(([joint, targetAngle]) => {
+    const actual = angles[joint];
+    if (actual === null || actual === undefined) return;
+    
+    const diff = Math.abs(actual - targetAngle);
+    // Improved scoring: more lenient with smooth degradation
+    let partScore;
+    if (diff <= 5) {
+      partScore = 100; // Perfect
+    } else if (diff <= 10) {
+      partScore = 95 - diff; // Very good
+    } else if (diff <= 20) {
+      partScore = 90 - diff * 0.5; // Good
+    } else if (diff <= 30) {
+      partScore = 80 - diff * 0.5; // Fair
+    } else {
+      partScore = Math.max(0, 60 - diff * 1.5); // Poor
+    }
+    
+    totalScore += partScore;
+    scoreCount++;
+
+    const name = jointNames[joint] || joint;
+    let severity = 'good';
+    let text = `${name} looks great!`;
+    
+    if (diff > 5) {
+      if (diff > 30) {
+        severity = 'bad';
+        const direction = actual < targetAngle ? 'more open (flex more)' : 'more closed (extend more)';
+        text = `${name}: ${Math.round(diff)}° off — ${direction}`;
+      } else if (diff > 15) {
+        severity = 'warn';
+        const direction = actual < targetAngle ? 'slightly more open' : 'slightly more closed';
+        text = `${name}: ${Math.round(diff)}° off — ${direction}`;
+      } else {
+        severity = 'warn';
+        text = `${name}: minor adjustment needed (${Math.round(diff)}° off)`;
+      }
+    }
+    
+    corrections.push({ joint: name, severity, text, score: Math.round(partScore), diff });
+
+    if (['leftKnee','rightKnee','leftHip','rightHip'].includes(joint)) bodyParts.legs.push(partScore);
+    else if (['leftShoulder','rightShoulder','leftElbow','rightElbow'].includes(joint)) bodyParts.arms.push(partScore);
+    else bodyParts.posture.push(partScore);
+  });
+
+  const avg = arr => arr.length ? Math.round(arr.reduce((a,b)=>a+b,0)/arr.length) : 85;
+  const overall = scoreCount > 0 ? Math.round(totalScore / scoreCount) : 0;
+
+  // Sort corrections: good first, then warn, then bad
+  corrections.sort((a, b) => {
+    const order = { good: 0, warn: 1, bad: 2 };
+    return order[a.severity] - order[b.severity];
+  });
+
+  return {
+    overall,
+    breakdown: { arms: avg(bodyParts.arms), legs: avg(bodyParts.legs), posture: avg(bodyParts.posture.length ? bodyParts.posture : [overall]) },
+    corrections,
+    angles,
+  };
+}
+
+// Draw skeleton on canvas
+function drawSkeleton(canvas, landmarks, videoEl) {
+  if (!canvas || !landmarks || !videoEl) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const connections = [
+    [11,12],[11,13],[13,15],[12,14],[14,16],
+    [11,23],[12,24],[23,24],[23,25],[24,26],
+    [25,27],[26,28],[27,29],[28,30],[29,31],[30,32],
+  ];
+
+  ctx.strokeStyle = 'rgba(122,200,130,0.85)';
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = 'round';
+  connections.forEach(([a,b]) => {
+    const A = landmarks[a], B = landmarks[b];
+    if (!A || !B) return;
+    ctx.beginPath();
+    ctx.moveTo(A.x * W, A.y * H);
+    ctx.lineTo(B.x * W, B.y * H);
+    ctx.stroke();
+  });
+
+  landmarks.forEach((lm, i) => {
+    if (i > 32) return;
+    ctx.beginPath();
+    ctx.arc(lm.x * W, lm.y * H, 4, 0, Math.PI*2);
+    ctx.fillStyle = i < 11 ? 'rgba(200,220,255,0.9)' : 'rgba(122,200,130,0.9)';
+    ctx.fill();
+  });
+}
+
+// Simulate landmarks based on the pose + slight randomness (used when camera unavailable / for demo)
+function generateSimLandmarks(asana, t) {
+  const base = Array.from({length: 33}, (_, i) => ({ x: 0.5, y: 0.5 + i*0.015, z: 0, visibility: 0.9 }));
+
+  // Key points: 11=leftShoulder,12=rightShoulder,13=leftElbow,14=rightElbow,15=leftWrist,16=rightWrist
+  //             23=leftHip,24=rightHip,25=leftKnee,26=rightKnee,27=leftAnkle,28=rightAnkle
+  const jitter = () => (Math.random() - 0.5) * 0.015;
+  const id = asana.id;
+
+  if (id === 'mountain') {
+    Object.assign(base[11], {x:0.42+jitter(), y:0.35+jitter()});
+    Object.assign(base[12], {x:0.58+jitter(), y:0.35+jitter()});
+    Object.assign(base[13], {x:0.40+jitter(), y:0.45+jitter()});
+    Object.assign(base[14], {x:0.60+jitter(), y:0.45+jitter()});
+    Object.assign(base[23], {x:0.44+jitter(), y:0.55+jitter()});
+    Object.assign(base[24], {x:0.56+jitter(), y:0.55+jitter()});
+    Object.assign(base[25], {x:0.44+jitter(), y:0.70+jitter()});
+    Object.assign(base[26], {x:0.56+jitter(), y:0.70+jitter()});
+    Object.assign(base[27], {x:0.44+jitter(), y:0.85+jitter()});
+    Object.assign(base[28], {x:0.56+jitter(), y:0.85+jitter()});
+  } else if (id === 'warrior2') {
+    Object.assign(base[11], {x:0.40+jitter(), y:0.35+jitter()});
+    Object.assign(base[12], {x:0.60+jitter(), y:0.35+jitter()});
+    Object.assign(base[13], {x:0.20+jitter(), y:0.35+jitter()});
+    Object.assign(base[14], {x:0.80+jitter(), y:0.35+jitter()});
+    Object.assign(base[15], {x:0.10+jitter(), y:0.35+jitter()});
+    Object.assign(base[16], {x:0.90+jitter(), y:0.35+jitter()});
+    Object.assign(base[23], {x:0.40+jitter(), y:0.55+jitter()});
+    Object.assign(base[24], {x:0.60+jitter(), y:0.55+jitter()});
+    Object.assign(base[25], {x:0.30+jitter(), y:0.72+jitter()});
+    Object.assign(base[26], {x:0.65+jitter(), y:0.65+jitter()});
+    Object.assign(base[27], {x:0.25+jitter(), y:0.88+jitter()});
+    Object.assign(base[28], {x:0.70+jitter(), y:0.88+jitter()});
+  } else if (id === 'tree') {
+    Object.assign(base[11], {x:0.42+jitter(), y:0.35+jitter()});
+    Object.assign(base[12], {x:0.58+jitter(), y:0.35+jitter()});
+    Object.assign(base[13], {x:0.30+jitter(), y:0.45+jitter()});
+    Object.assign(base[14], {x:0.70+jitter(), y:0.45+jitter()});
+    Object.assign(base[23], {x:0.44+jitter(), y:0.55+jitter()});
+    Object.assign(base[24], {x:0.56+jitter(), y:0.55+jitter()});
+    Object.assign(base[25], {x:0.44+jitter(), y:0.72+jitter()});
+    Object.assign(base[26], {x:0.62+jitter(), y:0.65+jitter()});
+    Object.assign(base[27], {x:0.44+jitter(), y:0.88+jitter()});
+    Object.assign(base[28], {x:0.56+jitter(), y:0.74+jitter()});
+  } else {
+    // generic standing pose
+    Object.assign(base[11], {x:0.42+jitter(), y:0.35+jitter()});
+    Object.assign(base[12], {x:0.58+jitter(), y:0.35+jitter()});
+    Object.assign(base[13], {x:0.38+jitter(), y:0.45+jitter()});
+    Object.assign(base[14], {x:0.62+jitter(), y:0.45+jitter()});
+    Object.assign(base[23], {x:0.44+jitter(), y:0.55+jitter()});
+    Object.assign(base[24], {x:0.56+jitter(), y:0.55+jitter()});
+    Object.assign(base[25], {x:0.44+jitter(), y:0.70+jitter()});
+    Object.assign(base[26], {x:0.56+jitter(), y:0.70+jitter()});
+    Object.assign(base[27], {x:0.44+jitter(), y:0.86+jitter()});
+    Object.assign(base[28], {x:0.56+jitter(), y:0.86+jitter()});
+  }
+  // Face landmarks 0-10
+  Object.assign(base[0],  {x:0.50+jitter()*0.5, y:0.10+jitter()*0.3});
+  [1,2,3,4,5,6,7,8,9,10].forEach(i => {
+    base[i].x = 0.5 + (i%2===0 ? -0.03 : 0.03) + jitter()*0.5;
+    base[i].y = 0.12 + (i*0.02) + jitter()*0.3;
+  });
+  // wrists
+  Object.assign(base[15], {x: base[13].x - 0.04 + jitter(), y: base[13].y + 0.12 + jitter()});
+  Object.assign(base[16], {x: base[14].x + 0.04 + jitter(), y: base[14].y + 0.12 + jitter()});
+  // ankles
+  Object.assign(base[29], {x: base[27].x - 0.02, y: base[27].y + 0.04});
+  Object.assign(base[30], {x: base[28].x + 0.02, y: base[28].y + 0.04});
+  Object.assign(base[31], {x: base[27].x, y: base[27].y + 0.06});
+  Object.assign(base[32], {x: base[28].x, y: base[28].y + 0.06});
+
+  return base;
+}
+
+// ─────────────────────────────────────────────
+// HOOKS
+// ─────────────────────────────────────────────
+function useTimer(active) {
+  const [time, setTime] = useState(0);
+  useEffect(() => {
+    if (!active) return;
+    const id = setInterval(() => setTime(t => t + 1), 1000);
+    return () => clearInterval(id);
+  }, [active]);
+  return time;
+}
+
+function useLocalStorage(key, initial) {
+  const [val, setVal] = useState(() => {
+    try { const s = localStorage.getItem(key); return s ? JSON.parse(s) : initial; }
+    catch { return initial; }
+  });
+  useEffect(() => { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} }, [key, val]);
+  return [val, setVal];
+}
+
+// ─────────────────────────────────────────────
+// COMPONENTS
+// ─────────────────────────────────────────────
+function ScoreCircle({ score, size = 120 }) {
+  const r = 44, circumference = 2 * Math.PI * r;
+  const offset = circumference - (score / 100) * circumference;
+  const color = score >= 75 ? '#4a6e4e' : score >= 50 ? '#c9a84c' : '#c4714a';
+  return (
+    <div className="score-circle" style={{ width: size, height: size }}>
+      <svg width={size} height={size} viewBox="0 0 120 120">
+        <circle cx="60" cy="60" r={r} fill="none" stroke="#e8ede9" strokeWidth="8"/>
+        <circle cx="60" cy="60" r={r} fill="none" stroke={color} strokeWidth="8"
+          strokeDasharray={circumference} strokeDashoffset={offset}
+          strokeLinecap="round" style={{ transition: 'stroke-dashoffset 0.6s ease' }}/>
+      </svg>
+      <div className="score-number" style={{ color }}>{score}</div>
+    </div>
+  );
+}
+
+function Toggle({ on, onToggle }) {
+  return (
+    <div className={`toggle-switch ${on ? 'on' : ''}`} onClick={onToggle}>
+      <div className="toggle-knob" />
+    </div>
+  );
+}
+
+function DifficultyBadge({ level }) {
+  return <span className={`badge diff-${level}`}>{level}</span>;
+}
+
+// ─────────────────────────────────────────────
+// PAGES
+// ─────────────────────────────────────────────
+
+// HOME
+function HomePage({ onSelectAsana, onNav }) {
+  const [filter, setFilter] = useState('all');
+  const [search, setSearch] = useState('');
+  const categories = ['all','standing','balance','backbend','seated','hip','inversion','core','restorative'];
+  const filtered = ASANAS.filter(a =>
+    (filter === 'all' || a.category === filter) &&
+    (a.name.toLowerCase().includes(search.toLowerCase()) || a.sanskrit.toLowerCase().includes(search.toLowerCase()))
+  );
+
+  return (
+    <div className="page">
+      {/* Hero */}
+      <div style={{ background: 'linear-gradient(135deg, #e8f4ea 0%, #f5f0e8 60%, #fceae3 100%)', padding: '80px 40px 60px', textAlign: 'center' }}>
+        <div style={{ fontSize: 48, marginBottom: 16 }}></div>
+        <h1 style={{ fontSize: 'clamp(32px,5vw,52px)', color: 'var(--soft-black)', marginBottom: 12, lineHeight: 1.15 }}>
+          Real-Time Yoga <span style={{ color: 'var(--sage-dark)', fontStyle: 'italic' }}>Posture AI</span>
+        </h1>
+        <p style={{ fontSize: 18, color: 'var(--text-muted)', maxWidth: 560, margin: '0 auto 32px' }}>
+          Select a pose, open your webcam, and receive instant AI-powered corrections and accuracy scores.
+        </p>
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <button className="btn btn-primary" onClick={() => onNav('library')}>Explore Asanas</button>
+          <button className="btn btn-outline" onClick={() => onNav('dashboard')}>My Dashboard</button>
+        </div>
+      </div>
+
+      {/* Featured asanas */}
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+          <h2 style={{ fontSize: 28 }}>Choose a Pose</h2>
+          <input placeholder="Search asanas…" value={search} onChange={e => setSearch(e.target.value)}
+            style={{ padding: '8px 16px', border: '1px solid var(--card-border)', borderRadius: 50, fontFamily: 'DM Sans, sans-serif', fontSize: 14, background: 'white', width: 200, outline: 'none' }} />
+        </div>
+        {/* Category filter */}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 28 }}>
+          {categories.map(c => (
+            <button key={c} onClick={() => setFilter(c)}
+              style={{ padding: '6px 16px', borderRadius: 50, border: '1px solid var(--card-border)', background: filter===c ? 'var(--sage-dark)' : 'white', color: filter===c ? 'white' : 'var(--text-muted)', fontSize: 13, cursor: 'pointer', fontFamily: 'DM Sans', transition: 'all 0.2s' }}>
+              {c.charAt(0).toUpperCase() + c.slice(1)}
+            </button>
+          ))}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 16 }}>
+          {filtered.map(a => (
+            <div key={a.id} className="asana-card" onClick={() => onSelectAsana(a)}>
+              <div className="asana-card-img placeholder">
+                {a.image ? <img src={a.image} alt={a.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : a.emoji}
+              </div>
+              <div className="asana-card-body">
+                <div className="asana-card-name">{a.name}</div>
+                <div className="asana-card-sanskrit">{a.sanskrit}</div>
+                <div style={{ marginTop: 8 }}><DifficultyBadge level={a.difficulty}/></div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Sessions section */}
+        <div style={{ marginTop: 56 }}>
+          <h2 style={{ fontSize: 28, marginBottom: 8 }}>Guided Sessions</h2>
+          <p style={{ color: 'var(--text-muted)', marginBottom: 24 }}>Follow a structured sequence for a complete practice.</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16 }}>
+            {SESSIONS.map(s => (
+              <div key={s.id} className="card" style={{ padding: 24, cursor: 'pointer' }} onClick={() => onNav('session', s)}>
+                <div style={{ fontSize: 36, marginBottom: 12 }}>{s.emoji}</div>
+                <div style={{ fontWeight: 500, fontSize: 16, marginBottom: 4 }}>{s.name}</div>
+                <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 12 }}>{s.desc}</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span className="badge badge-sage">⏱ {s.duration}</span>
+                  <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{s.poses.length} poses</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ASANA DETAIL
+function AsanaDetailPage({ asana, onStart, onBack }) {
+  return (
+    <div className="page" style={{ maxWidth: 900, margin: '0 auto', padding: '32px 24px' }}>
+      <button className="btn btn-outline btn-sm" onClick={onBack} style={{ marginBottom: 24 }}>← Back</button>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32 }}>
+        {/* Left */}
+        <div>
+          <div style={{ background: 'linear-gradient(135deg, #f0f7f1, #e8ede9)', borderRadius: 20, padding: 20, textAlign: 'center', fontSize: 100, marginBottom: 24, border: '2px dashed var(--sage-light)', minHeight: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+            {asana.image ? <img src={asana.image} alt={asana.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ fontSize: 100 }}>{asana.emoji}</div>}
+          </div>
+          <div className="card" style={{ padding: 24 }}>
+            <h3 style={{ fontSize: 18, marginBottom: 12 }}>Muscles Targeted</h3>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {asana.muscles.map(m => <span key={m} className="muscle-tag">{m}</span>)}
+            </div>
+          </div>
+        </div>
+        {/* Right */}
+        <div>
+          <div style={{ marginBottom: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
+            <DifficultyBadge level={asana.difficulty}/>
+            <span className="badge badge-sage">⏱ {asana.duration}s hold</span>
+            <span className="badge badge-gold">{asana.category}</span>
+          </div>
+          <h1 style={{ fontSize: 36, marginBottom: 4 }}>{asana.name}</h1>
+          <p style={{ color: 'var(--text-muted)', fontStyle: 'italic', marginBottom: 20 }}>{asana.sanskrit}</p>
+          <p style={{ color: 'var(--charcoal)', marginBottom: 24, lineHeight: 1.7 }}>{asana.desc}</p>
+
+          <div className="card" style={{ padding: 20, marginBottom: 16 }}>
+            <h3 style={{ fontSize: 16, marginBottom: 12 }}>✨ Benefits</h3>
+            {asana.benefits.map(b => (
+              <div key={b} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '6px 0', borderBottom: '1px solid var(--mist)' }}>
+                <span style={{ color: 'var(--sage-dark)', fontSize: 14 }}>→</span>
+                <span style={{ fontSize: 14 }}>{b}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="card" style={{ padding: 20, marginBottom: 16 }}>
+            <h3 style={{ fontSize: 16, marginBottom: 12 }}>⚠️ Common Mistakes</h3>
+            {asana.mistakes.map(m => (
+              <div key={m} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '6px 0', borderBottom: '1px solid var(--mist)' }}>
+                <span style={{ color: 'var(--terracotta)', fontSize: 14 }}>✕</span>
+                <span style={{ fontSize: 14 }}>{m}</span>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ background: '#f0f7f1', borderRadius: 12, padding: 16, marginBottom: 24, borderLeft: '3px solid var(--sage)' }}>
+            <strong style={{ fontSize: 14, color: 'var(--sage-dark)' }}>💡 Pro Tip</strong>
+            <p style={{ fontSize: 14, marginTop: 6, color: 'var(--charcoal)', lineHeight: 1.6 }}>{asana.tips}</p>
+          </div>
+
+          <button className="btn btn-primary" onClick={() => onStart(asana)} style={{ width: '100%', justifyContent: 'center', padding: '16px 24px', fontSize: 16 }}>
+            Start Practice →
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// PRACTICE PAGE
+function PracticePage({ asana, onBack, onSaveSession }) {
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const overlayRef = useRef(null);
+  const poseRef = useRef(null);
+  const [cameraActive, setCameraActive] = useState(false);
+  const [cameraError, setCameraError] = useState('');
+  const [isDetecting, setIsDetecting] = useState(false);
+  const [practiceActive, setPracticeActive] = useState(false);
+  const [landmarks, setLandmarks] = useState(null);
+  const [analysis, setAnalysis] = useState(null);
+  const [simMode, setSimMode] = useState(false);
+  const time = useTimer(practiceActive);
+  const frameCount = useRef(0);
+  const simInterval = useRef(null);
+  const cameraStream = useRef(null);
+
+  const formatTime = s => `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
+
+  // Start camera
+  const startCamera = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480, facingMode: 'user' } });
+      cameraStream.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+      setCameraActive(true);
+      setCameraError('');
+    } catch (e) {
+      setCameraError('Camera not available — using simulation mode.');
+      setSimMode(true);
+      setCameraActive(true);
+    }
+  }, []);
+
+  const stopCamera = () => {
+    if (cameraStream.current) cameraStream.current.getTracks().forEach(t => t.stop());
+    setCameraActive(false);
+    setPracticeActive(false);
+    setIsDetecting(false);
+  };
+
+  // Load MediaPipe dynamically
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js';
+    script.onload = () => {
+      try {
+        const { Pose } = window;
+        if (!Pose) return;
+        const pose = new Pose({ locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${f}` });
+        pose.setOptions({ modelComplexity: 1, smoothLandmarks: true, enableSegmentation: false, minDetectionConfidence: 0.6, minTrackingConfidence: 0.5 });
+        pose.onResults((results) => {
+          if (results.poseLandmarks) {
+            const lm = results.poseLandmarks;
+            setLandmarks(lm);
+            if (overlayRef.current && videoRef.current) {
+              overlayRef.current.width = videoRef.current.videoWidth || 640;
+              overlayRef.current.height = videoRef.current.videoHeight || 480;
+              drawSkeleton(overlayRef.current, lm, videoRef.current);
+            }
+            const res = analyzeAngles(lm, asana);
+            if (res) setAnalysis(res);
+          }
+        });
+        poseRef.current = pose;
+      } catch(e) {}
+    };
+    document.head.appendChild(script);
+    return () => { document.head.removeChild(script); };
+  }, [asana]);
+
+  // Detection loop
+  useEffect(() => {
+    if (!practiceActive) return;
+    if (simMode) {
+      simInterval.current = setInterval(() => {
+        const lm = generateSimLandmarks(asana, frameCount.current++);
+        setLandmarks(lm);
+        if (overlayRef.current) {
+          overlayRef.current.width = 640; overlayRef.current.height = 480;
+          drawSkeleton(overlayRef.current, lm, null);
+        }
+        const res = analyzeAngles(lm, asana);
+        if (res) setAnalysis(res);
+      }, 800);
+      return () => clearInterval(simInterval.current);
+    } else if (poseRef.current && videoRef.current) {
+      const detect = async () => {
+        if (videoRef.current && videoRef.current.readyState >= 2 && poseRef.current) {
+          await poseRef.current.send({ image: videoRef.current });
+        }
+      };
+      const id = setInterval(detect, 1000);
+      return () => clearInterval(id);
+    }
+  }, [practiceActive, simMode, asana]);
+
+  const handleStart = () => {
+    setPracticeActive(true);
+    setIsDetecting(true);
+  };
+
+  const handleStop = () => {
+    setPracticeActive(false);
+    setIsDetecting(false);
+    if (analysis) onSaveSession({ asana, duration: time, score: analysis.overall, date: new Date().toISOString() });
+  };
+
+  const getStatusColor = (score) => score >= 75 ? '#27ae60' : score >= 50 ? '#e67e22' : '#e74c3c';
+  const getStatusText = (score) => score >= 75 ? '✓ Correct' : score >= 50 ? '⟳ Adjust' : '✕ Incorrect';
+
+  return (
+    <div className="page" style={{ maxWidth: 1200, margin: '0 auto', padding: '24px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+        <button className="btn btn-outline btn-sm" onClick={onBack}>← Back</button>
+        <div>
+          <h2 style={{ fontSize: 24, margin: 0 }}>{asana.emoji} {asana.name}</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: 0 }}>{asana.sanskrit} · {asana.difficulty}</p>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 20 }}>
+        {/* LEFT: Camera */}
+        <div>
+          <div className="webcam-wrapper">
+            {simMode ? (
+              <div style={{ width: '100%', height: '100%', background: '#1a1a18', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.5)' }}>
+                <div style={{ fontSize: 80, marginBottom: 16 }}>{asana.emoji}</div>
+                <div style={{ fontSize: 14 }}>Simulation Mode</div>
+                <div style={{ fontSize: 12, marginTop: 4 }}>Real-time pose analysis running</div>
+              </div>
+            ) : (
+              <video ref={videoRef} autoPlay playsInline muted style={{ transform: 'scaleX(-1)' }}/>
+            )}
+            <canvas ref={overlayRef} className="webcam-overlay-canvas" style={{ transform: simMode ? 'none' : 'scaleX(-1)' }}/>
+
+            {practiceActive && (
+              <div className="webcam-badge">
+                <div className="live-dot"/>
+                <span>DETECTING</span>
+              </div>
+            )}
+            {practiceActive && (
+              <div className="timer-badge">{formatTime(time)}</div>
+            )}
+            {analysis && practiceActive && (
+              <div style={{ position: 'absolute', bottom: 12, left: '50%', transform: 'translateX(-50%)', background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)', borderRadius: 50, padding: '8px 20px', color: 'white', display: 'flex', alignItems: 'center', gap: 10, fontSize: 14 }}>
+                <span style={{ color: getStatusColor(analysis.overall), fontWeight: 600 }}>{getStatusText(analysis.overall)}</span>
+                <span style={{ color: 'rgba(255,255,255,0.5)' }}>|</span>
+                <span>Score: <strong>{analysis.overall}</strong>/100</span>
+              </div>
+            )}
+          </div>
+
+          {/* Camera controls */}
+          <div style={{ display: 'flex', gap: 12, marginTop: 16, flexWrap: 'wrap' }}>
+            {!cameraActive ? (
+              <button className="btn btn-primary" onClick={startCamera}>📷 Enable Camera</button>
+            ) : !practiceActive ? (
+              <button className="btn btn-primary" onClick={handleStart} style={{ background: '#27ae60' }}>▶ Start Detection</button>
+            ) : (
+              <button className="btn btn-danger" onClick={handleStop}>⏹ Stop & Save</button>
+            )}
+          </div>
+          {cameraError && <p style={{ color: 'var(--terracotta)', fontSize: 13, marginTop: 8 }}>⚠️ {cameraError}</p>}
+
+          {/* Breakdown bars */}
+          {analysis && (
+            <div className="card" style={{ padding: 20, marginTop: 20 }}>
+              <h3 style={{ fontSize: 16, marginBottom: 16 }}>Score Breakdown</h3>
+              <div style={{ display: 'flex', gap: 16 }}>
+                {Object.entries(analysis.breakdown).map(([part, score]) => (
+                  <div key={part} style={{ flex: 1, textAlign: 'center' }}>
+                    <div style={{ height: 80, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', marginBottom: 8 }}>
+                      <div style={{ height: `${score}%`, background: `linear-gradient(to top, var(--sage-dark), var(--sage-light))`, borderRadius: '4px 4px 0 0', minHeight: 4, transition: 'height 0.5s ease' }}/>
+                    </div>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--charcoal)' }}>{score}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{part}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* RIGHT PANELS: Reference, Corrections, Feedback */}
+        
+        {/* REFERENCE PANEL - TOP */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxHeight: '50vh', overflowY: 'auto' }}>
+          <div className="card" style={{ padding: 16 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: 'var(--sage-dark)' }}>📖 REFERENCE</h3>
+            <div style={{ textAlign: 'center', marginBottom: 12 }}>
+              <div style={{ fontSize: 80, marginBottom: 8, background: 'linear-gradient(135deg, #f0f7f1, #e8ede9)', borderRadius: 12, padding: 16, border: '2px dashed var(--sage-light)', overflow: 'hidden', height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {asana.referenceImage && asana.referenceImage.includes('.') ? (
+                  <img src={asana.referenceImage} alt={asana.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  <div style={{ fontSize: 80 }}>{asana.referenceImage || asana.emoji}</div>
+                )}
+              </div>
+              <h3 style={{ fontSize: 13, fontWeight: 600, margin: '0 0 2px 0' }}>{asana.name}</h3>
+              <p style={{ color: 'var(--text-muted)', fontSize: 11, fontStyle: 'italic', margin: 0 }}>{asana.sanskrit}</p>
+            </div>
+            
+            <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--sage-dark)', marginBottom: 8 }}>Target Angles:</div>
+            {Object.entries(asana.keyAngles).map(([joint, angle]) => (
+              <div key={joint} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, padding: '4px 0', borderBottom: '1px solid var(--mist)' }}>
+                <span>{joint.replace(/([A-Z])/g, ' $1').slice(1)}</span>
+                <span style={{ fontWeight: 500, color: 'var(--sage-dark)' }}>{angle}°</span>
+              </div>
+            ))}
+            
+            <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--charcoal)', marginTop: 12, marginBottom: 8 }}>Common Mistakes:</div>
+            {asana.mistakes.slice(0, 3).map((m, i) => (
+              <div key={i} style={{ fontSize: 10, color: 'var(--charcoal)', padding: '3px 0', display: 'flex', gap: 6 }}>
+                <span style={{ color: 'var(--terracotta)', flexShrink: 0 }}>✕</span>{m}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* CORRECTIONS PANEL - MIDDLE */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxHeight: '90vh', overflowY: 'auto' }}>
+          <div className="card" style={{ padding: 16 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: 'var(--terracotta)' }}>🔧 CORRECTIONS</h3>
+            {analysis ? analysis.corrections.filter(c => c.severity !== 'good').length > 0 ? (
+              analysis.corrections.filter(c => c.severity !== 'good').map((c, i) => (
+                <div key={i} style={{ marginBottom: 12, paddingBottom: 12, borderBottom: '1px solid var(--mist)' }}>
+                  <div style={{ fontSize: 11, fontWeight: 500, marginBottom: 2, display: 'flex', gap: 6, alignItems: 'center' }}>
+                    <span style={{ color: c.severity === 'bad' ? '#e74c3c' : '#e67e22', fontSize: 14 }}>●</span>
+                    {c.joint}
+                  </div>
+                  <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 6 }}>{c.text}</div>
+                  <div className="progress-bar" style={{ height: 4 }}>
+                    <div className="progress-fill" style={{ width: `${c.score}%`, background: c.severity === 'bad' ? '#e74c3c' : '#e67e22' }}/>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div style={{ textAlign: 'center', padding: '16px 0' }}>
+                <div style={{ fontSize: 24 }}>✅</div>
+                <p style={{ color: 'var(--sage-dark)', marginTop: 4, fontSize: 11 }}>No corrections!</p>
+              </div>
+            ) : (
+              <p style={{ color: 'var(--text-muted)', fontSize: 11, padding: '8px 0' }}>Start detection</p>
+            )}
+            
+            {/* Tip */}
+            <div style={{ background: '#f0f7f1', borderRadius: 8, padding: 10, marginTop: 12, borderLeft: '2px solid var(--sage)' }}>
+              <strong style={{ fontSize: 10, color: 'var(--sage-dark)', display: 'block', marginBottom: 4 }}>💡 Tip</strong>
+              <p style={{ fontSize: 10, color: 'var(--charcoal)', lineHeight: 1.4, margin: 0 }}>{asana.tips}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* FEEDBACK PANEL - BOTTOM */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxHeight: '40vh', overflowY: 'auto' }}>
+          <div className="card" style={{ padding: 16 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: 'var(--sage-dark)' }}>📊 FEEDBACK</h3>
+            {/* Score */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+              <ScoreCircle score={analysis ? analysis.overall : 0} size={80}/>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>Accuracy</div>
+                {analysis ? (
+                  <>
+                    <div style={{ fontSize: 16, fontWeight: 600, color: getStatusColor(analysis.overall) }}>{getStatusText(analysis.overall)}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{formatTime(time)}</div>
+                  </>
+                ) : (
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Start detection</div>
+                )}
+              </div>
+            </div>
+
+            {/* Good corrections */}
+            {analysis && (
+              <>
+                <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--sage-dark)', marginBottom: 8 }}>✓ Good Form</div>
+                {analysis.corrections.filter(c => c.severity === 'good').length > 0 ? (
+                  analysis.corrections.filter(c => c.severity === 'good').map((c, i) => (
+                    <div key={i} style={{ fontSize: 11, color: 'var(--charcoal)', padding: '4px 0', borderBottom: '1px solid var(--mist)', display: 'flex', gap: 6 }}>
+                      <span style={{ color: '#27ae60', flexShrink: 0 }}>✓</span>{c.text}
+                    </div>
+                  ))
+                ) : (
+                  <div style={{ fontSize: 11, color: 'var(--sage-dark)', textAlign: 'center', padding: '8px 0' }}>🎉 Perfect form!</div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// LIBRARY
+function LibraryPage({ onSelectAsana }) {
+  const [sort, setSort] = useState('name');
+  const [diff, setDiff] = useState('all');
+  const sorted = [...ASANAS]
+    .filter(a => diff === 'all' || a.difficulty === diff)
+    .sort((a, b) => sort === 'name' ? a.name.localeCompare(b.name) : a.duration - b.duration);
+
+  return (
+    <div className="page" style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 24px' }}>
+      <h1 style={{ fontSize: 36, marginBottom: 8 }}>Asana Library</h1>
+      <p style={{ color: 'var(--text-muted)', marginBottom: 28 }}>Complete guide to {ASANAS.length} yoga postures with AI analysis</p>
+      <div style={{ display: 'flex', gap: 12, marginBottom: 28, flexWrap: 'wrap' }}>
+        {['all','beginner','intermediate','advanced'].map(d => (
+          <button key={d} onClick={() => setDiff(d)}
+            style={{ padding: '6px 16px', borderRadius: 50, border: '1px solid var(--card-border)', background: diff===d ? 'var(--sage-dark)' : 'white', color: diff===d ? 'white' : 'var(--text-muted)', fontSize: 13, cursor: 'pointer', fontFamily: 'DM Sans' }}>
+            {d.charAt(0).toUpperCase() + d.slice(1)}
+          </button>
+        ))}
+        <select value={sort} onChange={e => setSort(e.target.value)}
+          style={{ padding: '6px 16px', borderRadius: 50, border: '1px solid var(--card-border)', fontFamily: 'DM Sans', fontSize: 13, background: 'white', cursor: 'pointer', marginLeft: 'auto' }}>
+          <option value="name">Sort: Name</option>
+          <option value="duration">Sort: Duration</option>
+        </select>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 16 }}>
+        {sorted.map(a => (
+          <div key={a.id} className="asana-card" onClick={() => onSelectAsana(a)}>
+            <div className="asana-card-img placeholder" style={{ fontSize: 56 }}>
+              {a.image ? <img src={a.image} alt={a.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : a.emoji}
+            </div>
+            <div className="asana-card-body">
+              <div className="asana-card-name">{a.name}</div>
+              <div className="asana-card-sanskrit">{a.sanskrit}</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+                <DifficultyBadge level={a.difficulty}/>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>⏱ {a.duration}s</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// SESSION
+function SessionPage({ session, onBack, onSelectAsana }) {
+  const [currentIdx, setCurrentIdx] = useState(0);
+  const [completed, setCompleted] = useState([]);
+  const poses = session.poses.map(id => ASANAS.find(a => a.id === id)).filter(Boolean);
+  const current = poses[currentIdx];
+
+  return (
+    <div className="page" style={{ maxWidth: 800, margin: '0 auto', padding: '32px 24px' }}>
+      <button className="btn btn-outline btn-sm" onClick={onBack} style={{ marginBottom: 24 }}>← Back</button>
+      <div style={{ textAlign: 'center', marginBottom: 32 }}>
+        <div style={{ fontSize: 48, marginBottom: 8 }}>{session.emoji}</div>
+        <h1 style={{ fontSize: 32, marginBottom: 4 }}>{session.name}</h1>
+        <p style={{ color: 'var(--text-muted)' }}>{session.desc}</p>
+      </div>
+
+      {/* Progress */}
+      <div style={{ marginBottom: 32 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--text-muted)', marginBottom: 8 }}>
+          <span>Progress</span><span>{currentIdx}/{poses.length} poses</span>
+        </div>
+        <div className="progress-bar" style={{ height: 8 }}>
+          <div className="progress-fill" style={{ width: `${(currentIdx/poses.length)*100}%` }}/>
+        </div>
+      </div>
+
+      {/* Pose list */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 32 }}>
+        {poses.map((p, i) => (
+          <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 20px', borderRadius: 12, border: `1.5px solid ${i === currentIdx ? 'var(--sage)' : 'var(--card-border)'}`, background: i === currentIdx ? '#f0f7f1' : 'white', cursor: 'pointer', transition: 'all 0.2s' }}
+            onClick={() => setCurrentIdx(i)}>
+            <div style={{ width: 40, height: 40, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: completed.includes(p.id) ? 'var(--sage)' : i === currentIdx ? 'var(--sage-light)' : 'var(--mist)', color: completed.includes(p.id) ? 'white' : 'var(--charcoal)', fontSize: 18 }}>
+              {completed.includes(p.id) ? '✓' : p.emoji}
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 500, fontSize: 15 }}>{p.name}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{p.sanskrit} · {p.duration}s hold</div>
+            </div>
+            <DifficultyBadge level={p.difficulty}/>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display: 'flex', gap: 12 }}>
+        <button className="btn btn-outline" style={{ flex: 1, justifyContent: 'center' }} onClick={() => { setCompleted(c => [...c, current.id]); if (currentIdx < poses.length-1) setCurrentIdx(i => i+1); }}>
+          Mark Complete
+        </button>
+        <button className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }} onClick={() => onSelectAsana(current)}>
+          Practice {current.name} →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// DASHBOARD
+function DashboardPage({ sessions }) {
+  const totalTime = sessions.reduce((a, s) => a + (s.duration || 0), 0);
+  const avgScore = sessions.length ? Math.round(sessions.reduce((a, s) => a + (s.score || 0), 0) / sessions.length) : 0;
+  const uniquePoses = new Set(sessions.map(s => s.asana?.id)).size;
+
+  const last7 = Array.from({length: 7}, (_, i) => {
+    const d = new Date(); d.setDate(d.getDate() - (6-i));
+    const dayStr = d.toDateString();
+    const daySessions = sessions.filter(s => new Date(s.date).toDateString() === dayStr);
+    return { day: ['Su','Mo','Tu','We','Th','Fr','Sa'][d.getDay()], count: daySessions.length, score: daySessions.length ? Math.round(daySessions.reduce((a,s)=>a+(s.score||0),0)/daySessions.length) : 0, active: daySessions.length > 0 };
+  });
+  const maxCount = Math.max(...last7.map(d => d.count), 1);
+
+  const recent = [...sessions].reverse().slice(0, 5);
+
+  return (
+    <div className="page" style={{ maxWidth: 1000, margin: '0 auto', padding: '32px 24px' }}>
+      <h1 style={{ fontSize: 36, marginBottom: 4 }}>My Dashboard</h1>
+      <p style={{ color: 'var(--text-muted)', marginBottom: 32 }}>Track your yoga journey and progress</p>
+
+      {/* Stats */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 32 }}>
+        {[
+          { label: 'Sessions', value: sessions.length, icon: '🧘' },
+          { label: 'Avg Score', value: avgScore, icon: '🎯' },
+          { label: 'Total Min', value: Math.round(totalTime/60), icon: '⏱' },
+          { label: 'Poses Done', value: uniquePoses, icon: '🌟' },
+        ].map(s => (
+          <div key={s.label} className="stat-card">
+            <div style={{ fontSize: 28, marginBottom: 4 }}>{s.icon}</div>
+            <div className="stat-number">{s.value}</div>
+            <div className="stat-label">{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+        {/* Weekly activity */}
+        <div className="card" style={{ padding: 24 }}>
+          <h3 style={{ fontSize: 18, marginBottom: 20 }}>Weekly Activity</h3>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', height: 120 }}>
+            {last7.map((d, i) => (
+              <div key={i} className="chart-bar">
+                <div className="chart-bar-fill" style={{ height: d.count > 0 ? `${(d.count/maxCount)*100}%` : '4px', background: d.active ? 'var(--sage)' : 'var(--mist)' }}/>
+                <div className="chart-bar-label" style={{ color: d.active ? 'var(--sage-dark)' : 'var(--text-muted)' }}>{d.day}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Streak calendar */}
+          <div style={{ marginTop: 20 }}>
+            <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 12, color: 'var(--text-muted)' }}>Streak Calendar</div>
+            <div style={{ display: 'flex', gap: 4 }}>
+              {last7.map((d, i) => (
+                <div key={i} className={`streak-day ${d.active ? 'streak-active' : 'streak-inactive'} ${i===6 ? 'streak-today' : ''}`}>
+                  {d.count > 0 ? '🔥' : d.day[0]}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Recent sessions */}
+        <div className="card" style={{ padding: 24 }}>
+          <h3 style={{ fontSize: 18, marginBottom: 16 }}>Recent Sessions</h3>
+          {recent.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-muted)' }}>
+              <div style={{ fontSize: 40, marginBottom: 8 }}>🌱</div>
+              <p style={{ fontSize: 14 }}>No sessions yet. Start practicing!</p>
+            </div>
+          ) : (
+            recent.map((s, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid var(--mist)' }}>
+                <div style={{ fontSize: 28 }}>{s.asana?.emoji || '🧘'}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 500 }}>{s.asana?.name || 'Unknown'}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{new Date(s.date).toLocaleDateString()}</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--sage-dark)' }}>{s.score}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>score</div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* Pose breakdown */}
+      {sessions.length > 0 && (
+        <div className="card" style={{ padding: 24, marginTop: 24 }}>
+          <h3 style={{ fontSize: 18, marginBottom: 16 }}>Pose Performance</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {Object.entries(sessions.reduce((acc, s) => {
+              const id = s.asana?.id;
+              if (!id) return acc;
+              if (!acc[id]) acc[id] = { asana: s.asana, scores: [] };
+              acc[id].scores.push(s.score || 0);
+              return acc;
+            }, {})).map(([id, { asana: a, scores }]) => {
+              const avg = Math.round(scores.reduce((x,y)=>x+y,0)/scores.length);
+              return (
+                <div key={id} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <span style={{ fontSize: 24, width: 32 }}>{a.emoji}</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <span style={{ fontSize: 13, fontWeight: 500 }}>{a.name}</span>
+                      <span style={{ fontSize: 13, color: 'var(--sage-dark)', fontWeight: 500 }}>{avg}/100</span>
+                    </div>
+                    <div className="progress-bar"><div className="progress-fill" style={{ width: `${avg}%` }}/></div>
+                  </div>
+                  <span style={{ fontSize: 12, color: 'var(--text-muted)', width: 40, textAlign: 'right' }}>{scores.length}x</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// PROFILE
+function ProfilePage({ sessions }) {
+  const totalTime = sessions.reduce((a,s) => a + (s.duration||0), 0);
+  const levels = { beginner: 0, intermediate: 0, advanced: 0 };
+  sessions.forEach(s => { if (s.asana?.difficulty) levels[s.asana.difficulty]++; });
+  return (
+    <div className="page" style={{ maxWidth: 700, margin: '0 auto', padding: '32px 24px' }}>
+      <div style={{ textAlign: 'center', marginBottom: 32 }}>
+        <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'var(--sage)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: 36 }}>🧘</div>
+        <h1 style={{ fontSize: 28, marginBottom: 4 }}>Yoga Practitioner</h1>
+        <p style={{ color: 'var(--text-muted)' }}>Member since {new Date().toLocaleDateString('en-US', {month:'long', year:'numeric'})}</p>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 32 }}>
+        {[
+          { label: 'Sessions', value: sessions.length },
+          { label: 'Minutes', value: Math.round(totalTime/60) },
+          { label: 'Avg Score', value: sessions.length ? Math.round(sessions.reduce((a,s)=>a+(s.score||0),0)/sessions.length) : 0 },
+        ].map(s => (
+          <div key={s.label} className="stat-card">
+            <div className="stat-number">{s.value}</div>
+            <div className="stat-label">{s.label}</div>
+          </div>
+        ))}
+      </div>
+      <div className="card" style={{ padding: 24, marginBottom: 20 }}>
+        <h3 style={{ fontSize: 18, marginBottom: 16 }}>Practice Distribution</h3>
+        {Object.entries(levels).map(([level, count]) => (
+          <div key={level} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+            <span style={{ width: 100, fontSize: 13, textTransform: 'capitalize' }}>{level}</span>
+            <div className="progress-bar" style={{ flex: 1 }}>
+              <div className="progress-fill" style={{ width: sessions.length ? `${(count/sessions.length)*100}%` : '0%' }}/>
+            </div>
+            <span style={{ fontSize: 13, color: 'var(--text-muted)', width: 24 }}>{count}</span>
+          </div>
+        ))}
+      </div>
+      <div className="card" style={{ padding: 24 }}>
+        <h3 style={{ fontSize: 18, marginBottom: 16 }}>Achievements</h3>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+          {[
+            { icon: '🌱', label: 'First Session', earned: sessions.length >= 1 },
+            { icon: '🔥', label: '5 Sessions', earned: sessions.length >= 5 },
+            { icon: '⭐', label: 'Score 80+', earned: sessions.some(s => s.score >= 80) },
+            { icon: '🏆', label: '10 Sessions', earned: sessions.length >= 10 },
+            { icon: '💎', label: 'Advanced Pose', earned: sessions.some(s => s.asana?.difficulty === 'advanced') },
+            { icon: '🌟', label: 'Score 90+', earned: sessions.some(s => s.score >= 90) },
+          ].map(a => (
+            <div key={a.label} style={{ padding: '12px 16px', borderRadius: 12, border: `1.5px solid ${a.earned ? 'var(--sage)' : 'var(--card-border)'}`, background: a.earned ? '#f0f7f1' : 'white', opacity: a.earned ? 1 : 0.4, textAlign: 'center', minWidth: 90 }}>
+              <div style={{ fontSize: 28 }}>{a.icon}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{a.label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// SETTINGS
+function SettingsPage() {
+  const [settings, setSettings] = useLocalStorage('yv-settings', {
+    detectionInterval: 1, showSkeleton: true, autoCorrect: true, sound: false, darkMode: false, highContrast: false,
+  });
+  const toggle = (key) => setSettings(s => ({ ...s, [key]: !s[key] }));
+  const items = [
+    { key: 'showSkeleton', label: 'Show Skeleton Overlay', desc: 'Draw joint connections on webcam feed' },
+    { key: 'autoCorrect', label: 'Auto Corrections', desc: 'Show real-time correction suggestions' },
+    { key: 'sound', label: 'Sound Feedback', desc: 'Play audio cues for corrections' },
+    { key: 'highContrast', label: 'High Contrast Mode', desc: 'Increase visibility of skeleton overlay' },
+  ];
+  return (
+    <div className="page" style={{ maxWidth: 600, margin: '0 auto', padding: '32px 24px' }}>
+      <h1 style={{ fontSize: 36, marginBottom: 4 }}>Settings</h1>
+      <p style={{ color: 'var(--text-muted)', marginBottom: 32 }}>Customize your practice experience</p>
+      <div className="card" style={{ padding: 24, marginBottom: 20 }}>
+        <h3 style={{ fontSize: 16, marginBottom: 20 }}>Detection Settings</h3>
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+            <label style={{ fontSize: 14, fontWeight: 500 }}>Detection Interval</label>
+            <span style={{ fontSize: 14, color: 'var(--sage-dark)', fontWeight: 500 }}>{settings.detectionInterval}s</span>
+          </div>
+          <input type="range" min="1" max="3" value={settings.detectionInterval} step="1"
+            onChange={e => setSettings(s => ({ ...s, detectionInterval: +e.target.value }))}
+            style={{ width: '100%' }}/>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+            <span>Faster (1s)</span><span>Slower (3s)</span>
+          </div>
+        </div>
+      </div>
+      <div className="card" style={{ padding: 24 }}>
+        <h3 style={{ fontSize: 16, marginBottom: 20 }}>Preferences</h3>
+        {items.map(item => (
+          <div key={item.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: '1px solid var(--mist)' }}>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 500 }}>{item.label}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{item.desc}</div>
+            </div>
+            <Toggle on={settings[item.key]} onToggle={() => toggle(item.key)}/>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ABOUT
+function AboutPage() {
+  return (
+    <div className="page" style={{ maxWidth: 700, margin: '0 auto', padding: '32px 24px' }}>
+      <div style={{ textAlign: 'center', marginBottom: 40 }}>
+        <div style={{ fontSize: 64, marginBottom: 16 }}></div>
+        <h1 style={{ fontSize: 40, marginBottom: 8 }}>Yoga AI</h1>
+        <p style={{ color: 'var(--text-muted)', fontSize: 16 }}>Intelligent Posture Recognition for the Modern Yogi</p>
+      </div>
+      {[
+        { title: ' How It Works', content: 'Yoga AI uses MediaPipe Pose — a state-of-the-art ML model that detects 33 body landmarks in real-time. These landmarks are analyzed to compute joint angles, which are then compared against ideal target angles for each asana. The system generates a pose accuracy score and specific corrections.' },
+        { title: ' Angle Analysis', content: 'Each yoga pose is defined by a set of target angles at key joints (knees, hips, shoulders, elbows). The AI computes the actual angles from your webcam feed and identifies deviations. Corrections are prioritized by severity — helping you focus on the most impactful adjustments first.' },
+        { title: ' Scoring System', content: 'Your pose accuracy is scored 0–100 based on how closely your joint angles match the ideal for each asana. The score breaks down into arms, legs, and posture components. A score of 75+ is considered "Correct", 50–74 suggests adjustments, and below 50 needs significant correction.' },
+        { title: ' Privacy', content: 'All pose detection runs entirely in your browser using your local GPU/CPU. Your webcam feed never leaves your device. No video is recorded or transmitted to any server.' },
+      ].map(s => (
+        <div key={s.title} className="card" style={{ padding: 24, marginBottom: 16 }}>
+          <h3 style={{ fontSize: 18, marginBottom: 12 }}>{s.title}</h3>
+          <p style={{ fontSize: 14, color: 'var(--charcoal)', lineHeight: 1.7 }}>{s.content}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// APP ROOT
+// ─────────────────────────────────────────────
+function App() {
+  const [page, setPage] = useState('home');
+  const [selectedAsana, setSelectedAsana] = useState(null);
+  const [selectedSession, setSelectedSession] = useState(null);
+  const [sessions, setSessions] = useLocalStorage('yv-sessions', []);
+
+  const navTo = (pg, data) => {
+    setPage(pg);
+    if (data && pg === 'session') setSelectedSession(data);
+  };
+
+  const handleSelectAsana = (asana) => {
+    setSelectedAsana(asana);
+    setPage('detail');
+  };
+
+  const handleStartPractice = (asana) => {
+    setSelectedAsana(asana);
+    setPage('practice');
+  };
+
+  const handleSaveSession = (sess) => {
+    setSessions(prev => [...prev, sess]);
+  };
+
+  const navLinks = [
+    { key: 'home', label: 'Home' },
+    { key: 'library', label: 'Library' },
+    { key: 'dashboard', label: 'Dashboard' },
+    { key: 'profile', label: 'Profile' },
+    { key: 'about', label: 'About' },
+    { key: 'settings', label: 'Settings' },
+  ];
+
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <nav>
+        <div className="nav-logo" onClick={() => setPage('home')}>
+          <span></span>
+          Yoga AI
+        </div>
+        <div className="nav-links">
+          {navLinks.map(l => (
+            <button key={l.key} className={`nav-link ${page === l.key ? 'active' : ''}`} onClick={() => navTo(l.key)}>
+              {l.label}
+            </button>
+          ))}
+        </div>
+      </nav>
+
+      <div style={{ flex: 1 }}>
+        {page === 'home' && <HomePage onSelectAsana={handleSelectAsana} onNav={navTo}/>}
+        {page === 'library' && <LibraryPage onSelectAsana={handleSelectAsana}/>}
+        {page === 'detail' && selectedAsana && (
+          <AsanaDetailPage asana={selectedAsana} onStart={handleStartPractice} onBack={() => setPage(page === 'detail' ? 'home' : 'library')}/>
+        )}
+        {page === 'practice' && selectedAsana && (
+          <PracticePage asana={selectedAsana} onBack={() => setPage('detail')} onSaveSession={handleSaveSession}/>
+        )}
+        {page === 'session' && selectedSession && (
+          <SessionPage session={selectedSession} onBack={() => setPage('home')} onSelectAsana={handleSelectAsana}/>
+        )}
+        {page === 'dashboard' && <DashboardPage sessions={sessions}/>}
+        {page === 'profile' && <ProfilePage sessions={sessions}/>}
+        {page === 'settings' && <SettingsPage/>}
+        {page === 'about' && <AboutPage/>}
+      </div>
+
+      <footer>
+        <div style={{ fontSize: 20, marginBottom: 8 }}></div>
+        <strong>Yoga AI</strong> — Real-Time Posture Recognition<br/>
+        Powered by MediaPipe · All processing runs locally in your browser
+      </footer>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
